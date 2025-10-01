@@ -44,6 +44,11 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
     const properties = {
       1: {
         title: 'Apartamento en El Poblado, Medellín',
@@ -129,7 +134,7 @@
 
     async function loadFeedback(propertyId) {
       try {
-        const response = await fetch(`/feedback/${propertyId}`);
+        const response = await fetch(`${API_BASE_URL}/feedback/${propertyId}`);
         const data = await response.json();
         const feedbackSection = document.getElementById('feedback-section');
 

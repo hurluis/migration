@@ -29,6 +29,11 @@
   </footer>
     
   <script>
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
     const properties = {
       1: { img: 'https://images.ctfassets.net/8lc7xdlkm4kt/33L5l2aTXdJAAEfw55n0Yh/7472faf6b498fdc11091fc65a5c69165/render-sobre-planos-saint-michel.jpg', coordinates: [6.2088, -75.5679] },
       2: { img: 'https://media-luna-hostel.cartagena-hotels.net/data/Photos/1080x700w/10392/1039228/1039228984/cartagena-media-luna-hostel-photo-1.JPEG', coordinates: [10.422385, -75.544984] },
@@ -46,7 +51,7 @@
 
     async function fetchActiveReservations(userId) {
       try {
-          const response = await fetch(`/active-reservations/${userId}`);
+          const response = await fetch(`${API_BASE_URL}/active-reservations/${userId}`);
           return await response.json();
       } catch (error) {
           console.error('Error en reservas activas:', error);
@@ -56,7 +61,7 @@
 
     async function fetchPastReservations(userId) {
       try {
-          const response = await fetch(`/past-reservations/${userId}`);
+          const response = await fetch(`${API_BASE_URL}/past-reservations/${userId}`);
           return await response.json();
       } catch (error) {
           console.error('Error en reservas pasadas:', error);

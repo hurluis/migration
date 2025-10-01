@@ -50,6 +50,11 @@
   </footer>
 
   <script>
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
     const reservationData = JSON.parse(localStorage.getItem('reservationData'));
 
     if (reservationData) {
@@ -75,7 +80,7 @@
       }
 
       try {
-          const response = await fetch(`/reserved-dates/${reservationData.property_id}`);
+          const response = await fetch(`${API_BASE_URL}/reserved-dates/${reservationData.property_id}`);
 
           if (!response.ok) {
               const errorText = await response.text();
@@ -99,7 +104,7 @@
               currentDate.setDate(currentDate.getDate() + 1);
           }
 
-          const reserveResponse = await fetch('/reserve', {
+          const reserveResponse = await fetch(`${API_BASE_URL}/reserve`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
