@@ -110,11 +110,6 @@ En ambos casos, FastAPI sabrá que debe buscar el archivo `style.css` dentro de 
   </footer>
 
   <script>
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
-      ? 'http://localhost:8000'
-      : window.location.origin;
-
     function updateMenu() {
       const userId = localStorage.getItem('userId');
       const registerLink = document.getElementById('register-link');
@@ -152,7 +147,7 @@ En ambos casos, FastAPI sabrá que debe buscar el archivo `style.css` dentro de 
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
 
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const response = await fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -183,7 +178,7 @@ En ambos casos, FastAPI sabrá que debe buscar el archivo `style.css` dentro de 
         }
 //---------------------------------
 
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

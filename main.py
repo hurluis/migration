@@ -62,15 +62,6 @@ def execute_query(query, params=None):
             print(f"Error en la base de datos: {e}")
             raise HTTPException(status_code=500, detail="Error en la base de datos")
 
-
-def serialize_reservation(row):
-    reservation = row._asdict()
-    for key in ["in_time", "out_time"]:
-        value = reservation.get(key)
-        if isinstance(value, datetime):
-            reservation[key] = value.strftime("%Y-%m-%d")
-    return reservation
-
 # --- Endpoints ---
 
 @app.get("/")
@@ -167,7 +158,7 @@ async def get_active_reservations(user_id: int):
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
     
-    active_reservations = [serialize_reservation(row) for row in reservations]
+    active_reservations = [row._asdict() for row in reservations]
     
     return JSONResponse(content={"reservations": active_reservations}, status_code=200)
 
@@ -193,7 +184,7 @@ async def get_past_reservations(user_id: int):
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
     
-    past_reservations = [serialize_reservation(row) for row in reservations]
+    past_reservations = [row._asdict() for row in reservations]
 
     return JSONResponse(content={"reservations": past_reservations}, status_code=200)
 

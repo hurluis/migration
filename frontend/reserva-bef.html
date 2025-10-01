@@ -42,17 +42,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
-      ? 'http://localhost:8000'
-      : window.location.origin;
-
     const params = new URLSearchParams(window.location.search);
     const propertyId = params.get('id');
 
     async function getReservedDates(propertyId) {
       try {
-        const response = await fetch(`${API_BASE_URL}/reserved-dates/${propertyId}`);
+        const response = await fetch(`/reserved-dates/${propertyId}`);
         const data = await response.json();
         return data.reserved_dates; 
       } catch (error) {
