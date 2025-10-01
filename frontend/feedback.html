@@ -48,6 +48,11 @@
   </footer>
 
   <script>
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const API_BASE_URL = isLocalhost && window.location.port !== '8000'
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get('booking_id');
     const propertyId = params.get('property_id');
@@ -69,7 +74,7 @@
       }
 
       try {
-        const response = await fetch('/feedback', {
+        const response = await fetch(`${API_BASE_URL}/feedback`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
