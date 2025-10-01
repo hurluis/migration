@@ -76,6 +76,12 @@
 
       try {
           const response = await fetch(`/reserved-dates/${reservationData.property_id}`);
+
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`No se pudieron obtener las fechas reservadas. ${errorText}`);
+          }
+
           const data = await response.json();
           const blockedDates = data.reserved_dates;
 
@@ -98,11 +104,18 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   ...reservationData,
-                  status: "activo"  
+                  status: "activo"
               })
           });
 
-          const result = await reserveResponse.json();
+          let result;
+
+          try {
+              result = await reserveResponse.json();
+          } catch (jsonError) {
+              const fallbackMessage = await reserveResponse.text();
+              throw new Error(fallbackMessage || 'No se pudo interpretar la respuesta del servidor.');
+          }
 
           if (reserveResponse.ok) {
               alert('Pago simulado con éxito. Reserva realizada.');
