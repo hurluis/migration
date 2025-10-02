@@ -207,6 +207,28 @@ def home():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.get("/{page_name}.html")
+def serve_html_page(page_name: str):
+    """Devuelve archivos HTML estáticos del frontend.
+
+    Permite navegar directamente a rutas como ``/detalle.html`` sin
+    depender de un servidor externo y evita interferir con las rutas de la API,
+    ya que solo intercepta solicitudes que terminan en ``.html``.
+    """
+
+    target_file = (FRONTEND_DIR / f"{page_name}.html").resolve()
+
+    try:
+        target_file.relative_to(FRONTEND_DIR)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Página no encontrada")
+
+    if not target_file.exists():
+        raise HTTPException(status_code=404, detail="Página no encontrada")
+
+    return FileResponse(target_file)
+
+
 @api_router.post("/register")
 async def register(user: RegisterRequest):
     # Verificar si el usuario ya existe
