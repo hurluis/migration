@@ -1,1 +1,1 @@
-nginx.conf
+# Intentionally left blank so nginx.conf is included in the build context.
