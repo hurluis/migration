@@ -29,6 +29,59 @@ app.add_middleware(
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
+
+def init_db():
+    """Crea las tablas necesarias si no existen."""
+    ddl_statements = [
+        """
+        CREATE TABLE IF NOT EXISTS "Users" (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS "Property" (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            location TEXT,
+            price NUMERIC(10, 2),
+            description TEXT,
+            image_url TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS "Bookings" (
+            id SERIAL PRIMARY KEY,
+            property_id INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
+            in_time DATE NOT NULL,
+            out_time DATE NOT NULL,
+            status VARCHAR(50) DEFAULT 'activo',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS "Feedback" (
+            id SERIAL PRIMARY KEY,
+            id_property INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
+            comment TEXT NOT NULL,
+            rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """
+    ]
+
+    with engine.begin() as connection:
+        for ddl in ddl_statements:
+            connection.execute(text(ddl))
+
+
+init_db()
+
 # --- Modelos Pydantic (sin cambios) ---
 class RegisterRequest(BaseModel):
     name: str
