@@ -107,6 +107,7 @@
     <p>&copy; 2025 AIRBNB JH-LS. Todos los derechos reservados.</p>
   </footer>
 
+  <script src="/estilos/api.js"></script>
   <script>
     function updateMenu() {
       const userId = localStorage.getItem('userId');
@@ -145,7 +146,7 @@
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
 
-      const response = await fetch('/register', {
+      const response = await apiFetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -176,7 +177,7 @@
         }
 //---------------------------------
 
-      const response = await fetch('/login', {
+      const response = await apiFetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

@@ -47,6 +47,7 @@
     <p>&copy; 2025 AIRBNB JH-LS. Todos los derechos reservados.</p>
   </footer>
 
+  <script src="/estilos/api.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get('booking_id');
@@ -69,13 +70,12 @@
       }
 
       try {
-        const response = await fetch('/feedback', {
+        const response = await apiFetch('/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_booking: bookingId,
             id_property: propertyId,
-            comments: comments,
+            comment: comments,
             rating: rating
           })
         });

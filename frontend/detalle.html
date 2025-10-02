@@ -43,6 +43,7 @@
   </footer>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="/estilos/api.js"></script>
   <script>
     const properties = {
       1: {
@@ -129,7 +130,7 @@
 
     async function loadFeedback(propertyId) {
       try {
-        const response = await fetch(`/feedback/${propertyId}`);
+        const response = await apiFetch(`/feedback/${propertyId}`);
         const data = await response.json();
         const feedbackSection = document.getElementById('feedback-section');
 

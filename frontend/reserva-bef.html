@@ -41,13 +41,14 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="/estilos/api.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const propertyId = params.get('id');
 
     async function getReservedDates(propertyId) {
       try {
-        const response = await fetch(`/reserved-dates/${propertyId}`);
+        const response = await apiFetch(`/reserved-dates/${propertyId}`);
         const data = await response.json();
         return data.reserved_dates; 
       } catch (error) {
