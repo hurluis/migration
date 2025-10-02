@@ -65,32 +65,54 @@ Este proyecto es una plataforma web tipo Airbnb desarrollada con **HTML**, **CSS
 - Notificaciones por correo o SMS.
 
 
-## frontend con Docker (Nginx)
+## 🐳 Despliegue con Docker
 
 **Requisitos**
--Docker Desktop (Windows/Mac) o Docker Engine (Linux)
 
-1-Construir la imagen
+- Docker Desktop (Windows/Mac) o Docker Engine (Linux)
 
-Ubícate en la carpeta raíz del repo (donde existe la carpeta frontend/) y ejecuta:
+### Usando Docker Compose
+
+El archivo `docker-compose.yml` levanta los tres servicios necesarios (frontend, backend y base de datos). Para reducir problemas de DNS al descargar imágenes base (por ejemplo, `nginx:alpine` o `python:3.11-slim`), la definición de `build` usa `network: host`, lo que permite que BuildKit reutilice directamente la configuración de red del host.
+
+1. Construye y levanta los servicios:
+
+   ```bash
+   docker compose up --build
+   ```
+
+2. Abre el navegador en:
+
+   ```
+   http://localhost
+   ```
+
+> 💡 Si utilizas una red corporativa con proxy, asegúrate de que Docker tenga configuradas las variables `HTTP_PROXY`, `HTTPS_PROXY` y `NO_PROXY` en la sección *Resources → Proxies* para evitar errores del tipo `lookup registry-1.docker.io: no such host`.
+
+### Construcción manual del frontend
+
+Si prefieres construir únicamente el frontend estático:
+
+1. Ubícate en la carpeta raíz del repo (donde existe la carpeta `frontend/`) y ejecuta:
 
    ```bash
    cd frontend
    docker build -t airbnb-frontend .
    ```
 
-2-Ejecutar el contenedor
+2. Ejecuta el contenedor:
 
    ```bash
    docker run -d --name airbnb-frontend -p 8080:80 airbnb-frontend
    ```
 
-4. Abre el navegador en:
+3. Abre el navegador en:
+
    ```
    http://localhost:8080
    ```
 
-**Actualizar imagen tras cambios**
+4. Para actualizar la imagen tras cambios:
 
    ```bash
    docker rm -f airbnb-frontend
