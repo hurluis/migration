@@ -1,18 +1,11 @@
-# Imagen base ligera con nginx
 FROM nginx:alpine
 
-# Elimina configuración por defecto de nginx
-RUN rm -rf /usr/share/nginx/html/* && \
-    rm /etc/nginx/nginx.conf
-
-# Copia los archivos del frontend al directorio público de nginx
-COPY . /usr/share/nginx/html
-
-# Copia la configuración de nginx
+# Copiar configuración de nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Exponer puerto 80
+# Copiar archivos del frontend
+COPY . /usr/share/nginx/html
+
 EXPOSE 80
 
-# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"]

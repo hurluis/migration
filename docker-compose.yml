@@ -2,22 +2,22 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    build: ./backend
     container_name: fastapi-backend
     restart: always
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://user_fastapi:mysecretpassword@db:5432/booking_app_db
+    volumes:
+      - ./frontend:/app/frontend:ro  # Montar frontend como solo lectura
     depends_on:
       - db
 
+  # ... el resto permanece igual
+
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
     container_name: nginx-frontend
     restart: always
     ports:
