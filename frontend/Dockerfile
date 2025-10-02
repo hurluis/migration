@@ -2,8 +2,8 @@
 FROM nginx:alpine
 
 # Elimina configuración por defecto de nginx
-RUN rm -rf /usr/share/nginx/html/*
-RUN rm /etc/nginx/nginx.conf
+RUN rm -rf /usr/share/nginx/html/* && \
+    rm /etc/nginx/nginx.conf
 
 # Copia los archivos del frontend al directorio público de nginx
 COPY . /usr/share/nginx/html
