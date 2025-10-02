@@ -1,5 +1,7 @@
 # python -m uvicorn main:app --reload
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,9 +15,13 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR.parent / "frontend"
+
 load_dotenv()
 app = FastAPI()
 app.mount('/static', StaticFiles(directory="static"), name="static")
+app.mount('/estilos', StaticFiles(directory=FRONTEND_DIR / "estilos"), name="estilos")
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,7 +124,7 @@ def execute_query(query, params=None):
 
 @app.get("/")
 def home():
-    return FileResponse("frontend/index.html")
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 @app.post("/register")
 async def register(user: RegisterRequest):
