@@ -354,6 +354,17 @@ def ensure_date(value):
     raise ValueError("Formato de fecha desconocido")
 
 
+def serialize_reservation_row(row):
+    data = dict(row._mapping)
+
+    for key in ("in_time", "out_time", "created_at"):
+        value = data.get(key)
+        if isinstance(value, (datetime, date)):
+            data[key] = value.isoformat()
+
+    return data
+
+
 @api_router.get("/reserved-dates/{property_id}")
 async def get_reserved_dates(property_id: int):
     query = 'SELECT in_time, out_time FROM "Bookings" WHERE property_id = :property_id'
@@ -422,8 +433,11 @@ async def get_active_reservations(user_id: int):
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
     
-    active_reservations = [row._asdict() for row in reservations]
-    
+    active_reservations = [
+        serialize_reservation_row(row)
+        for row in reservations
+    ]
+
     return JSONResponse(content={"reservations": active_reservations}, status_code=200)
 
 async def update_expired_reservations():
@@ -448,7 +462,10 @@ async def get_past_reservations(user_id: int):
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
     
-    past_reservations = [row._asdict() for row in reservations]
+    past_reservations = [
+        serialize_reservation_row(row)
+        for row in reservations
+    ]
 
     return JSONResponse(content={"reservations": past_reservations}, status_code=200)
 
