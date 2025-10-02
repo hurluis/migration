@@ -15,10 +15,19 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = BASE_DIR.parent / "frontend"
-
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
+
+frontend_dir_env = os.getenv("FRONTEND_DIR")
+if frontend_dir_env:
+    FRONTEND_DIR = Path(frontend_dir_env).resolve()
+else:
+    FRONTEND_DIR = (BASE_DIR / "frontend").resolve()
+
+if not FRONTEND_DIR.exists():
+    raise RuntimeError(f"Frontend directory '{FRONTEND_DIR}' does not exist")
+
 app = FastAPI()
 app.mount('/static', StaticFiles(directory="static"), name="static")
 app.mount('/estilos', StaticFiles(directory=FRONTEND_DIR / "estilos"), name="estilos")
