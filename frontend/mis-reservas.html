@@ -39,10 +39,62 @@
     };
 
     const userId = localStorage.getItem('userId');
+    const numericUserId = userId ? Number(userId) : null;
 
-    if (!userId) {
+    if (!numericUserId) {
       alert('Por favor, inicie sesión para ver sus reservas.');
       window.location.href = "index.html";
+    }
+
+    function toDateOnly(value) {
+      if (!value) {
+        return null;
+      }
+
+      const normalized = value.includes('T')
+        ? value.split('T')[0]
+        : value.split(' ')[0];
+
+      const parsed = new Date(`${normalized}T00:00:00`);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function canCancelReservation(inTime) {
+      const checkInDate = toDateOnly(inTime);
+      if (!checkInDate) {
+        return false;
+      }
+      const today = new Date();
+      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      return checkInDate > todayMidnight;
+    }
+
+    async function cancelReservation(bookingId) {
+      const confirmed = confirm('¿Deseas cancelar esta reserva?');
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const response = await apiFetch('/cancel-reservation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_id: bookingId, user_id: numericUserId })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || 'No fue posible cancelar la reserva.');
+          return;
+        }
+
+        alert(data.message || 'Reserva cancelada con éxito.');
+        await loadReservations();
+      } catch (error) {
+        console.error('Error al cancelar la reserva:', error);
+        alert('Ocurrió un error al cancelar la reserva. Intenta nuevamente.');
+      }
     }
 
     async function fetchActiveReservations(userId) {
@@ -66,8 +118,8 @@
     }
 
     async function loadReservations() {
-      const active = await fetchActiveReservations(userId);
-      const past = await fetchPastReservations(userId);
+      const active = await fetchActiveReservations(numericUserId);
+      const past = await fetchPastReservations(numericUserId);
       const container = document.getElementById('reservations-container');
       container.innerHTML = '';
 
@@ -75,7 +127,7 @@
           active.reservations.forEach(reservation => renderReservation(reservation, false));
       }
 
-    
+
       if (past.reservations.length > 0) {
           past.reservations.forEach(reservation => renderReservation(reservation, true));
       }
@@ -90,22 +142,29 @@
       const card = document.createElement('div');
       card.classList.add('card');
 
+      const canCancel = !isPast && canCancelReservation(reservation.in_time);
+
       card.innerHTML = `
           <img src="${property.img}" alt="${reservation.property_name}">
           <h3>${reservation.property_name}</h3>
           <p>Entrada: ${reservation.in_time}</p>
           <p>Salida: ${reservation.out_time}</p>
           <p>Estado: ${reservation.status}</p>
-          ${!isPast ? 
-              `<a href="https://www.google.com/maps/dir/?api=1&destination=${property.coordinates[0]},${property.coordinates[1]}" 
-                 target="_blank" 
+          ${!isPast ?
+              `<a href="https://www.google.com/maps/dir/?api=1&destination=${property.coordinates[0]},${property.coordinates[1]}"
+                 target="_blank"
                  class="directions-btn">
                   Cómo llegar
-              </a>` 
+              </a>`
               : ''}
-          ${isPast ? 
-              `<button class="directions-btn" 
-                      data-booking-id="${reservation.id}" 
+          ${canCancel ?
+              `<button class="cancel-btn" data-booking-id="${reservation.id}">
+                  Cancelar Reserva
+              </button>`
+              : ''}
+          ${isPast ?
+              `<button class="directions-btn"
+                      data-booking-id="${reservation.id}"
                       data-property-id="${reservation.property_id}">
                   Dejar Feedback
               </button>` 
@@ -120,6 +179,13 @@
               const propertyId = e.target.dataset.propertyId;
               window.location.href = `feedback.html?booking_id=${bookingId}&property_id=${propertyId}`;
           });
+      }
+
+      if (canCancel) {
+        card.querySelector('.cancel-btn').addEventListener('click', (e) => {
+          const bookingId = Number(e.currentTarget.dataset.bookingId);
+          cancelReservation(bookingId);
+        });
       }
     }
 

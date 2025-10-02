@@ -266,6 +266,11 @@ class ReservationRequest(BaseModel):
     in_time: str
     out_time: str
 
+
+class CancelReservationRequest(BaseModel):
+    booking_id: int
+    user_id: int
+
 # --- Funciones de ayuda para la base de datos ---
 def execute_query(query, params=None):
     with engine.connect() as connection:
@@ -367,7 +372,10 @@ def serialize_reservation_row(row):
 
 @api_router.get("/reserved-dates/{property_id}")
 async def get_reserved_dates(property_id: int):
-    query = 'SELECT in_time, out_time FROM "Bookings" WHERE property_id = :property_id'
+    query = (
+        'SELECT in_time, out_time FROM "Bookings" '
+        "WHERE property_id = :property_id AND status = 'activo'"
+    )
     bookings = execute_query(query, {"property_id": property_id}).fetchall()
 
     reserved_dates = []
@@ -398,6 +406,7 @@ async def reserve(reservation: ReservationRequest):
     query_check = """
         SELECT id FROM "Bookings"
         WHERE property_id = :property_id AND
+        status = 'activo' AND
         in_time <= :out_time AND out_time >= :in_time
     """
     existing_reservation = execute_query(
@@ -429,7 +438,7 @@ async def get_active_reservations(user_id: int):
         SELECT b.id, b.property_id, p.name AS property_name, b.in_time, b.out_time, b.status
         FROM "Bookings" b
         JOIN "Property" p ON b.property_id = p.id
-        WHERE b.user_id = :user_id AND b.out_time >= :now
+        WHERE b.user_id = :user_id AND b.out_time >= :now AND b.status = 'activo'
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
     
@@ -461,13 +470,41 @@ async def get_past_reservations(user_id: int):
         WHERE b.user_id = :user_id AND b.out_time < :now
     """
     reservations = execute_query(query, {"user_id": user_id, "now": now}).fetchall()
-    
+
     past_reservations = [
         serialize_reservation_row(row)
         for row in reservations
     ]
 
     return JSONResponse(content={"reservations": past_reservations}, status_code=200)
+
+
+@api_router.post("/cancel-reservation")
+async def cancel_reservation(payload: CancelReservationRequest):
+    booking = execute_query(
+        'SELECT id, in_time, status FROM "Bookings" WHERE id = :booking_id AND user_id = :user_id',
+        {"booking_id": payload.booking_id, "user_id": payload.user_id},
+    ).first()
+
+    if not booking:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+
+    booking_data = booking._mapping
+    if booking_data["status"] != "activo":
+        return JSONResponse(content={"message": "La reserva ya no está activa"}, status_code=400)
+
+    check_in_date = ensure_date(booking_data["in_time"])
+    today = datetime.now().date()
+
+    if check_in_date <= today:
+        return JSONResponse(content={"message": "Solo puedes cancelar antes del día de ingreso"}, status_code=400)
+
+    execute_query(
+        "UPDATE \"Bookings\" SET status = 'cancelado' WHERE id = :booking_id",
+        {"booking_id": payload.booking_id},
+    )
+
+    return JSONResponse(content={"message": "Reserva cancelada con éxito"}, status_code=200)
 
 @api_router.post("/feedback")
 async def submit_feedback(feedback: FeedbackRequest):
