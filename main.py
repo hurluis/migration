@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from pathlib import Path
 import os
 
 # Nuevas importaciones para PostgreSQL
@@ -15,8 +16,20 @@ from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()
 app = FastAPI()
-app.mount("/estilos", StaticFiles(directory="frontend"), name="estilos")
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+app.mount(
+    "/estilos",
+    StaticFiles(directory=str(FRONTEND_DIR / "estilos")),
+    name="estilos",
+)
+app.mount(
+    "/frontend",
+    StaticFiles(directory=str(FRONTEND_DIR)),
+    name="frontend",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,7 +79,7 @@ def execute_query(query, params=None):
 
 @app.get("/")
 def home():
-    return FileResponse("frontend/index.html")
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 @app.post("/register")
 async def register(user: RegisterRequest):
