@@ -28,6 +28,7 @@
     <p>&copy; 2025 AIRBNB JH-LS. Todos los derechos reservados.</p>
   </footer>
     
+  <script src="/estilos/api.js"></script>
   <script>
     const properties = {
       1: { img: 'https://images.ctfassets.net/8lc7xdlkm4kt/33L5l2aTXdJAAEfw55n0Yh/7472faf6b498fdc11091fc65a5c69165/render-sobre-planos-saint-michel.jpg', coordinates: [6.2088, -75.5679] },
@@ -46,7 +47,7 @@
 
     async function fetchActiveReservations(userId) {
       try {
-          const response = await fetch(`/active-reservations/${userId}`);
+          const response = await apiFetch(`/active-reservations/${userId}`);
           return await response.json();
       } catch (error) {
           console.error('Error en reservas activas:', error);
@@ -56,7 +57,7 @@
 
     async function fetchPastReservations(userId) {
       try {
-          const response = await fetch(`/past-reservations/${userId}`);
+          const response = await apiFetch(`/past-reservations/${userId}`);
           return await response.json();
       } catch (error) {
           console.error('Error en reservas pasadas:', error);

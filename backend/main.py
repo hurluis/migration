@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import os
 
 # Nuevas importaciones para PostgreSQL
@@ -23,13 +23,16 @@ frontend_dir_env = os.getenv("FRONTEND_DIR")
 if frontend_dir_env:
     FRONTEND_DIR = Path(frontend_dir_env).resolve()
 else:
-    FRONTEND_DIR = (BASE_DIR / "frontend").resolve()
+    candidate = (BASE_DIR / "frontend").resolve()
+    if not candidate.exists():
+        candidate = (BASE_DIR.parent / "frontend").resolve()
+    FRONTEND_DIR = candidate
 
 if not FRONTEND_DIR.exists():
     raise RuntimeError(f"Frontend directory '{FRONTEND_DIR}' does not exist")
 
 app = FastAPI()
-app.mount('/static', StaticFiles(directory="static"), name="static")
+app.mount('/static', StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.mount('/estilos', StaticFiles(directory=FRONTEND_DIR / "estilos"), name="estilos")
 
 app.add_middleware(
@@ -42,53 +45,118 @@ app.add_middleware(
 
 # Configuración de la conexión a la base de datos local
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
+
+if not DATABASE_URL:
+    DATABASE_URL = f"sqlite:///{BASE_DIR / 'app.db'}"
+
+engine_kwargs = {}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
+IS_SQLITE = engine.url.get_backend_name() == "sqlite"
+
+if IS_SQLITE:
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def init_db():
     """Crea las tablas necesarias si no existen."""
-    ddl_statements = [
-        """
-        CREATE TABLE IF NOT EXISTS "Users" (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS "Property" (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            location TEXT,
-            price NUMERIC(10, 2),
-            description TEXT,
-            image_url TEXT,
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS "Bookings" (
-            id SERIAL PRIMARY KEY,
-            property_id INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
-            user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
-            in_time DATE NOT NULL,
-            out_time DATE NOT NULL,
-            status VARCHAR(50) DEFAULT 'activo',
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS "Feedback" (
-            id SERIAL PRIMARY KEY,
-            id_property INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
-            comment TEXT NOT NULL,
-            rating INTEGER CHECK (rating BETWEEN 1 AND 5),
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-        """
-    ]
+    if IS_SQLITE:
+        ddl_statements = [
+            """
+            CREATE TABLE IF NOT EXISTS "Users" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Property" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL,
+                location TEXT,
+                price NUMERIC(10, 2),
+                description TEXT,
+                image_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Bookings" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                property_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                in_time DATE NOT NULL,
+                out_time DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'activo',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(property_id) REFERENCES "Property"(id) ON DELETE CASCADE,
+                FOREIGN KEY(user_id) REFERENCES "Users"(id) ON DELETE CASCADE
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Feedback" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_property INTEGER NOT NULL,
+                comment TEXT NOT NULL,
+                rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(id_property) REFERENCES "Property"(id) ON DELETE CASCADE
+            )
+            """
+        ]
+    else:
+        ddl_statements = [
+            """
+            CREATE TABLE IF NOT EXISTS "Users" (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Property" (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                location TEXT,
+                price NUMERIC(10, 2),
+                description TEXT,
+                image_url TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Bookings" (
+                id SERIAL PRIMARY KEY,
+                property_id INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
+                in_time DATE NOT NULL,
+                out_time DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'activo',
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS "Feedback" (
+                id SERIAL PRIMARY KEY,
+                id_property INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
+                comment TEXT NOT NULL,
+                rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+            """
+        ]
 
     with engine.begin() as connection:
         for ddl in ddl_statements:
@@ -131,11 +199,15 @@ def execute_query(query, params=None):
 
 # --- Endpoints ---
 
+api_router = APIRouter()
+
+
 @app.get("/")
 def home():
     return FileResponse(FRONTEND_DIR / "index.html")
 
-@app.post("/register")
+
+@api_router.post("/register")
 async def register(user: RegisterRequest):
     # Verificar si el usuario ya existe
     query_check = 'SELECT * FROM "Users" WHERE email = :email'
@@ -144,12 +216,19 @@ async def register(user: RegisterRequest):
         return JSONResponse(content={"message": "El usuario ya existe"}, status_code=400)
 
     # Insertar nuevo usuario
-    query_insert = 'INSERT INTO "Users" (name, email, password) VALUES (:name, :email, :password)'
-    execute_query(query_insert, user.dict())
-    
-    return JSONResponse(content={"message": "Usuario registrado con éxito"}, status_code=201)
+    if IS_SQLITE:
+        query_insert = 'INSERT INTO "Users" (name, email, password) VALUES (:name, :email, :password)'
+        result = execute_query(query_insert, user.dict())
+        user_id = result.lastrowid
+    else:
+        query_insert = 'INSERT INTO "Users" (name, email, password) VALUES (:name, :email, :password) RETURNING id'
+        result = execute_query(query_insert, user.dict())
+        user_id = result.scalar()
 
-@app.post("/login")
+    return JSONResponse(content={"message": "Usuario registrado con éxito", "user_id": user_id}, status_code=201)
+
+
+@api_router.post("/login")
 async def login(user: LoginRequest):
     query = 'SELECT * FROM "Users" WHERE email = :email AND password = :password'
     result = execute_query(query, user.dict()).first()
@@ -160,16 +239,29 @@ async def login(user: LoginRequest):
     user_data = result._asdict()
     return JSONResponse(content={"message": "Inicio de sesión exitoso", "user_id": user_data['id']}, status_code=200)
 
-@app.get("/reserved-dates/{property_id}")
+def ensure_date(value):
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            return datetime.fromisoformat(value).date()
+    raise ValueError("Formato de fecha desconocido")
+
+
+@api_router.get("/reserved-dates/{property_id}")
 async def get_reserved_dates(property_id: int):
     query = 'SELECT in_time, out_time FROM "Bookings" WHERE property_id = :property_id'
     bookings = execute_query(query, {"property_id": property_id}).fetchall()
-    
+
     reserved_dates = []
     for booking in bookings:
-        in_time = booking[0] # Acceso por índice
-        out_time = booking[1]
-        
+        in_time = ensure_date(booking[0])
+        out_time = ensure_date(booking[1])
+
         current_date = in_time
         while current_date <= out_time:
             reserved_dates.append(current_date.strftime("%Y-%m-%d"))
@@ -177,7 +269,7 @@ async def get_reserved_dates(property_id: int):
     
     return JSONResponse(content={"reserved_dates": reserved_dates}, status_code=200)
 
-@app.post("/reserve")
+@api_router.post("/reserve")
 async def reserve(reservation: ReservationRequest):
     try:
         in_time = datetime.strptime(reservation.in_time, "%Y-%m-%d")
@@ -195,7 +287,10 @@ async def reserve(reservation: ReservationRequest):
         WHERE property_id = :property_id AND
         in_time <= :out_time AND out_time >= :in_time
     """
-    existing_reservation = execute_query(query_check, {"property_id": reservation.property_id, "in_time": in_time, "out_time": out_time}).first()
+    existing_reservation = execute_query(
+        query_check,
+        {"property_id": reservation.property_id, "in_time": in_time, "out_time": out_time},
+    ).first()
     if existing_reservation:
         return JSONResponse(content={"message": "La propiedad ya está reservada en esas fechas"}, status_code=400)
 
@@ -213,7 +308,7 @@ async def reserve(reservation: ReservationRequest):
 
     return JSONResponse(content={"message": "Reserva realizada con éxito"}, status_code=201)
 
-@app.get("/active-reservations/{user_id}")
+@api_router.get("/active-reservations/{user_id}")
 async def get_active_reservations(user_id: int):
     now = datetime.now()
     # Usamos JOIN para obtener el nombre de la propiedad en una sola consulta
@@ -235,12 +330,12 @@ async def update_expired_reservations():
     execute_query(query, {"now": now})
     print("Reservas caducadas actualizadas.")
 
-@app.get("/update-reservations")
+@api_router.get("/update-reservations")
 async def trigger_update_reservations(background_tasks: BackgroundTasks):
     background_tasks.add_task(update_expired_reservations)
     return {"message": "Actualización de reservas caducadas iniciada"}
 
-@app.get("/past-reservations/{user_id}")
+@api_router.get("/past-reservations/{user_id}")
 async def get_past_reservations(user_id: int):
     now = datetime.now()
     query = """
@@ -255,7 +350,7 @@ async def get_past_reservations(user_id: int):
 
     return JSONResponse(content={"reservations": past_reservations}, status_code=200)
 
-@app.post("/feedback")
+@api_router.post("/feedback")
 async def submit_feedback(feedback: FeedbackRequest):
     # La consulta se actualiza para que coincida con la tabla
     query = """
@@ -265,8 +360,12 @@ async def submit_feedback(feedback: FeedbackRequest):
     execute_query(query, feedback.dict())
     return JSONResponse(content={"message": "Feedback guardado"}, status_code=201)
     
-@app.get("/feedback/{property_id}")
+@api_router.get("/feedback/{property_id}")
 async def get_feedback(property_id: int):
     query = 'SELECT * FROM "Feedback" WHERE id_property = :property_id'
     feedback_list = [row._asdict() for row in execute_query(query, {"property_id": property_id}).fetchall()]
     return JSONResponse(content={"feedback": feedback_list}, status_code=200)
+
+
+app.include_router(api_router)
+app.include_router(api_router, prefix="/api")

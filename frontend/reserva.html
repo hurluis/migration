@@ -49,9 +49,8 @@
     <p>&copy; 2025 AIRBNB JH-LS. Todos los derechos reservados.</p>
   </footer>
 
+  <script src="/estilos/api.js"></script>
   <script>
-    // Las peticiones van directamente al mismo origen (nginx hará el proxy)
-    const API_URL = '';
 
     const reservationData = JSON.parse(localStorage.getItem('reservationData'));
 
@@ -80,7 +79,7 @@
 
       try {
           // Usar API_URL para todas las peticiones
-          const response = await fetch(`${API_URL}/reserved-dates/${reservationData.property_id}`);
+          const response = await apiFetch(`/reserved-dates/${reservationData.property_id}`);
           const data = await response.json();
           const blockedDates = data.reserved_dates;
 
@@ -98,7 +97,7 @@
               currentDate.setDate(currentDate.getDate() + 1);
           }
 
-          const reserveResponse = await fetch(`${API_URL}/reserve`, {
+          const reserveResponse = await apiFetch('/reserve', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
