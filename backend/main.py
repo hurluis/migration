@@ -163,7 +163,87 @@ def init_db():
             connection.execute(text(ddl))
 
 
+# Datos iniciales de propiedades para garantizar la coherencia con el frontend
+INITIAL_PROPERTIES = [
+    {
+        "id": 1,
+        "name": "Apartamento en El Poblado",
+        "location": "Cl. 9 #37, El Poblado, Medellín, Antioquia",
+        "price": 450000,
+        "description": "Hermoso apartamento en una de las mejores zonas de Medellín, cerca de centros comerciales y restaurantes.",
+        "image_url": "https://images.ctfassets.net/8lc7xdlkm4kt/33L5l2aTXdJAAEfw55n0Yh/7472faf6b498fdc11091fc65a5c69165/render-sobre-planos-saint-michel.jpg",
+    },
+    {
+        "id": 2,
+        "name": "Casa colonial en Cartagena",
+        "location": "10-46 Media Luna 10, Getsemaní, Cartagena de Indias, Bolívar",
+        "price": 500000,
+        "description": "Encantadora casa colonial con vistas al mar, en el centro histórico de Cartagena.",
+        "image_url": "https://media-luna-hostel.cartagena-hotels.net/data/Photos/1080x700w/10392/1039228/1039228984/cartagena-media-luna-hostel-photo-1.JPEG",
+    },
+    {
+        "id": 3,
+        "name": "Loft en Bogotá",
+        "location": "Av Suba #125-98, Bogotá",
+        "price": 320000,
+        "description": "Moderno loft en el centro de Bogotá, ideal para viajeros de negocios.",
+        "image_url": "https://latinexclusive.com/sites/default/files/styles/main_property_slide/public/api_file_downloads/3862061_1.jpg?itok=qxmdZ3oA",
+    },
+    {
+        "id": 4,
+        "name": "Cabaña en el Eje Cafetero",
+        "location": "2 kilómetros antes de termales Santa Rosa por la desviación a la Paloma vereda, San RAMON, Santa Rosa de Cabal, Risaralda",
+        "price": 800000,
+        "description": "Cabaña rústica rodeada de naturaleza, perfecta para desconectarse y disfrutar del café colombiano.",
+        "image_url": "https://asoaturquindio.com/wp-content/uploads/2023/09/cabanas-la-herradura-4-1.jpg",
+    },
+    {
+        "id": 5,
+        "name": "Hostal en Santa Marta",
+        "location": "Cl. 14 #3-58, Comuna 2, Santa Marta, Magdalena",
+        "price": 50000,
+        "description": "Hostal económico a pocos minutos de la playa, ideal para mochileros y aventureros.",
+        "image_url": "https://cf.bstatic.com/xdata/images/hotel/max500/151251581.jpg?k=02b942afead8be7bea67cd35453662d8a6ae787336565b884c55aca6dbedcd08&o=",
+    },
+]
+
+
+def seed_initial_properties():
+    """Inserta propiedades base si la tabla está vacía o faltan entradas esperadas."""
+
+    with engine.begin() as connection:
+        for property_data in INITIAL_PROPERTIES:
+            exists = connection.execute(
+                text('SELECT 1 FROM "Property" WHERE id = :id'),
+                {"id": property_data["id"]},
+            ).scalar()
+
+            if exists:
+                continue
+
+            connection.execute(
+                text(
+                    'INSERT INTO "Property" (id, name, location, price, description, image_url) '
+                    'VALUES (:id, :name, :location, :price, :description, :image_url)'
+                ),
+                property_data,
+            )
+
+        if not IS_SQLITE:
+            connection.execute(
+                text(
+                    """
+                    SELECT setval(
+                        pg_get_serial_sequence('"Property"', 'id'),
+                        (SELECT COALESCE(MAX(id), 0) FROM "Property")
+                    )
+                    """
+                )
+            )
+
+
 init_db()
+seed_initial_properties()
 
 # --- Modelos Pydantic (sin cambios) ---
 class RegisterRequest(BaseModel):
