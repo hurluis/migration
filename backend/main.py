@@ -359,15 +359,18 @@ def ensure_date(value):
     raise ValueError("Formato de fecha desconocido")
 
 
-def serialize_reservation_row(row):
+def row_to_serializable_dict(row):
     data = dict(row._mapping)
 
-    for key in ("in_time", "out_time", "created_at"):
-        value = data.get(key)
+    for key, value in data.items():
         if isinstance(value, (datetime, date)):
             data[key] = value.isoformat()
 
     return data
+
+
+def serialize_reservation_row(row):
+    return row_to_serializable_dict(row)
 
 
 @api_router.get("/reserved-dates/{property_id}")
@@ -519,7 +522,10 @@ async def submit_feedback(feedback: FeedbackRequest):
 @api_router.get("/feedback/{property_id}")
 async def get_feedback(property_id: int):
     query = 'SELECT * FROM "Feedback" WHERE id_property = :property_id'
-    feedback_list = [row._asdict() for row in execute_query(query, {"property_id": property_id}).fetchall()]
+    feedback_list = [
+        row_to_serializable_dict(row)
+        for row in execute_query(query, {"property_id": property_id}).fetchall()
+    ]
     return JSONResponse(content={"feedback": feedback_list}, status_code=200)
 
 
