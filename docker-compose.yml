@@ -1,9 +1,6 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      network: host
+    image: hurluis/migration-backend:1.0
     container_name: fastapi-backend
     restart: always
     ports:
@@ -11,15 +8,12 @@ services:
     environment:
       DATABASE_URL: postgresql://user_fastapi:mysecretpassword@db:5432/booking_app_db
     volumes:
-      - ./frontend:/app/frontend:ro
+      - ./frontend:/app/frontend:ro     
     depends_on:
       - db
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      network: host
+    image: hurluis/migration-frontend:1.0
     container_name: nginx-frontend
     restart: always
     ports:
