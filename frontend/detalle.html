@@ -129,21 +129,44 @@
     }
 
     async function loadFeedback(propertyId) {
+      const feedbackSection = document.getElementById('feedback-section');
+
       try {
         const response = await apiFetch(`/feedback/${propertyId}`);
+
+        if (!response.ok) {
+          throw new Error(`Error al consultar feedback: ${response.status}`);
+        }
+
         const data = await response.json();
-        const feedbackSection = document.getElementById('feedback-section');
 
-        if (data.feedback && data.feedback.length > 0) {
-          feedbackSection.innerHTML = ''; 
+        if (Array.isArray(data.feedback) && data.feedback.length > 0) {
+          feedbackSection.innerHTML = '';
 
-          data.feedback.forEach(feedback => {
+          data.feedback.forEach((feedback) => {
             const feedbackItem = document.createElement('div');
             feedbackItem.classList.add('feedback-item');
-            feedbackItem.innerHTML = `
-              <p><strong>Calificación:</strong> ${'⭐️'.repeat(feedback.rating)}</p>
-              <p><strong>Comentario:</strong> ${feedback.comment}</p>
-            `;
+
+            const ratingParagraph = document.createElement('p');
+            const ratingLabel = document.createElement('strong');
+            ratingLabel.textContent = 'Calificación:';
+            const rawRating = Number.parseInt(feedback.rating, 10);
+            const safeRating = Number.isFinite(rawRating)
+              ? Math.min(Math.max(rawRating, 0), 5)
+              : 0;
+            const ratingValue = safeRating > 0 ? '⭐️'.repeat(safeRating) : 'Sin calificación';
+            ratingParagraph.appendChild(ratingLabel);
+            ratingParagraph.append(` ${ratingValue}`);
+
+            const commentParagraph = document.createElement('p');
+            const commentLabel = document.createElement('strong');
+            commentLabel.textContent = 'Comentario:';
+            commentParagraph.appendChild(commentLabel);
+            commentParagraph.append(` ${feedback.comment ?? ''}`);
+
+            feedbackItem.appendChild(ratingParagraph);
+            feedbackItem.appendChild(commentParagraph);
+
             feedbackSection.appendChild(feedbackItem);
           });
         } else {
