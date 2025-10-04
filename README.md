@@ -98,7 +98,7 @@ Durante el primer arranque se crean las tablas necesarias y se insertan los regi
    ```
 3. Entra a la carpeta del proyecto:
    ```bash
-   cd /Airbnb-Desarrollo/
+   cd Airbnb-Desarrollo/
    ```
 4. (Opcional) Define `DATABASE_URL` y otras credenciales en `.env` para que Compose las consuma.
 5. Levanta los servicios:
