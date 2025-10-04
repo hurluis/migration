@@ -87,12 +87,25 @@ Durante el primer arranque se crean las tablas necesarias y se insertan los regi
 
 ## 🐳 Despliegue con Docker Compose
 
-1. (Opcional) Define `DATABASE_URL` y otras credenciales en `.env` para que Compose las consuma.
-2. Levanta los servicios:
+- Imágenes públicas: https://hub.docker.com/repositories/hurluis
+
+### Pasos rápidos para clonar y levantar los contenedores
+
+1. Asegúrate de tener **Docker Desktop** abierto y en ejecución.
+2. Clona el repositorio:
+   ```bash
+   git clone https://github.com/JULILYHERRERA/AIRBNB_GESTION.git
+   ```
+3. Entra a la carpeta del proyecto:
+   ```bash
+   cd AIRBNB_GESTION/migration
+   ```
+4. (Opcional) Define `DATABASE_URL` y otras credenciales en `.env` para que Compose las consuma.
+5. Levanta los servicios:
    ```bash
    docker compose up --build
    ```
-3. Accede a:
+6. Accede a:
    - `http://localhost` para el frontend servido por Nginx.
    - `http://localhost:8000/docs` para la documentación interactiva.
 
