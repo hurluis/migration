@@ -106,10 +106,12 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS "Feedback" (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER UNIQUE,
                 id_property INTEGER NOT NULL,
                 comment TEXT NOT NULL,
                 rating INTEGER CHECK (rating BETWEEN 1 AND 5),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(booking_id) REFERENCES "Bookings"(id) ON DELETE CASCADE,
                 FOREIGN KEY(id_property) REFERENCES "Property"(id) ON DELETE CASCADE
             )
             """
@@ -150,6 +152,7 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS "Feedback" (
                 id SERIAL PRIMARY KEY,
+                booking_id INTEGER UNIQUE REFERENCES "Bookings"(id) ON DELETE CASCADE,
                 id_property INTEGER NOT NULL REFERENCES "Property"(id) ON DELETE CASCADE,
                 comment TEXT NOT NULL,
                 rating INTEGER CHECK (rating BETWEEN 1 AND 5),
@@ -245,6 +248,62 @@ def seed_initial_properties():
 init_db()
 seed_initial_properties()
 
+
+def ensure_feedback_schema():
+    """Garantiza que la tabla Feedback tenga las columnas y restricciones esperadas."""
+
+    with engine.begin() as connection:
+        if IS_SQLITE:
+            columns = {
+                row[1]
+                for row in connection.execute(text("PRAGMA table_info('Feedback')"))
+            }
+
+            if "booking_id" not in columns:
+                connection.execute(
+                    text(
+                        'ALTER TABLE "Feedback" '
+                        'ADD COLUMN booking_id INTEGER REFERENCES "Bookings"(id) ON DELETE CASCADE'
+                    )
+                )
+
+            connection.execute(
+                text(
+                    'CREATE UNIQUE INDEX IF NOT EXISTS idx_feedback_booking_id '
+                    'ON "Feedback"(booking_id)'
+                )
+            )
+        else:
+            column_exists = connection.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'Feedback'
+                      AND column_name = 'booking_id'
+                    """
+                )
+            ).first()
+
+            if not column_exists:
+                connection.execute(
+                    text(
+                        'ALTER TABLE "Feedback" '
+                        'ADD COLUMN booking_id INTEGER REFERENCES "Bookings"(id) ON DELETE CASCADE'
+                    )
+                )
+
+            connection.execute(
+                text(
+                    'CREATE UNIQUE INDEX IF NOT EXISTS "idx_feedback_booking_id" '
+                    'ON "Feedback"(booking_id)'
+                )
+            )
+
+
+ensure_feedback_schema()
+
 # --- Modelos Pydantic (sin cambios) ---
 class RegisterRequest(BaseModel):
     name: str
@@ -252,6 +311,7 @@ class RegisterRequest(BaseModel):
     password: str
 
 class FeedbackRequest(BaseModel):
+    booking_id: int
     id_property: int
     comment: str
     rating: int
@@ -467,7 +527,18 @@ async def trigger_update_reservations(background_tasks: BackgroundTasks):
 async def get_past_reservations(user_id: int):
     now = datetime.now()
     query = """
-        SELECT b.id, b.property_id, p.name AS property_name, b.in_time, b.out_time, b.status
+        SELECT b.id,
+               b.property_id,
+               p.name AS property_name,
+               b.in_time,
+               b.out_time,
+               b.status,
+               CASE
+                   WHEN EXISTS (
+                       SELECT 1 FROM "Feedback" f WHERE f.booking_id = b.id
+                   ) THEN 1
+                   ELSE 0
+               END AS has_feedback
         FROM "Bookings" b
         JOIN "Property" p ON b.property_id = p.id
         WHERE b.user_id = :user_id AND b.out_time < :now
@@ -511,10 +582,35 @@ async def cancel_reservation(payload: CancelReservationRequest):
 
 @api_router.post("/feedback")
 async def submit_feedback(feedback: FeedbackRequest):
-    # La consulta se actualiza para que coincida con la tabla
+    booking = execute_query(
+        'SELECT id, property_id FROM "Bookings" WHERE id = :booking_id',
+        {"booking_id": feedback.booking_id},
+    ).first()
+
+    if not booking:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+
+    booking_data = booking._mapping
+    if booking_data["property_id"] != feedback.id_property:
+        return JSONResponse(
+            content={"message": "La reserva no corresponde a la propiedad proporcionada"},
+            status_code=400,
+        )
+
+    existing_feedback = execute_query(
+        'SELECT 1 FROM "Feedback" WHERE booking_id = :booking_id',
+        {"booking_id": feedback.booking_id},
+    ).first()
+
+    if existing_feedback:
+        return JSONResponse(
+            content={"message": "Ya enviaste feedback para esta reserva"},
+            status_code=400,
+        )
+
     query = """
-        INSERT INTO "Feedback" (id_property, comment, rating)
-        VALUES (:id_property, :comment, :rating)
+        INSERT INTO "Feedback" (booking_id, id_property, comment, rating)
+        VALUES (:booking_id, :id_property, :comment, :rating)
     """
     execute_query(query, feedback.dict())
     return JSONResponse(content={"message": "Feedback guardado"}, status_code=201)
@@ -527,6 +623,16 @@ async def get_feedback(property_id: int):
         for row in execute_query(query, {"property_id": property_id}).fetchall()
     ]
     return JSONResponse(content={"feedback": feedback_list}, status_code=200)
+
+
+@api_router.get("/feedback-status/{booking_id}")
+async def feedback_status(booking_id: int):
+    result = execute_query(
+        'SELECT 1 FROM "Feedback" WHERE booking_id = :booking_id',
+        {"booking_id": booking_id},
+    ).first()
+
+    return JSONResponse(content={"has_feedback": bool(result)}, status_code=200)
 
 
 app.include_router(api_router)
