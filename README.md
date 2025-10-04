@@ -94,11 +94,11 @@ Durante el primer arranque se crean las tablas necesarias y se insertan los regi
 1. Asegúrate de tener **Docker Desktop** abierto y en ejecución.
 2. Clona el repositorio:
    ```bash
-   git clone https://github.com/JULILYHERRERA/AIRBNB_GESTION.git
+   git clone https://github.com/hurluis/Airbnb-Desarrollo.git
    ```
 3. Entra a la carpeta del proyecto:
    ```bash
-   cd AIRBNB_GESTION/migration
+   cd /Airbnb-Desarrollo/
    ```
 4. (Opcional) Define `DATABASE_URL` y otras credenciales en `.env` para que Compose las consuma.
 5. Levanta los servicios:
@@ -106,10 +106,13 @@ Durante el primer arranque se crean las tablas necesarias y se insertan los regi
    docker compose up --build
    ```
 6. Accede a:
-   - `http://localhost` para el frontend servido por Nginx.
-   - `http://localhost:8000/docs` para la documentación interactiva.
+   - `http://localhost:8000` para el frontend servido por Nginx.
+   - `http://localhost:8000/docs` para la documentación interactiva (swagger ui).
 
 Servicios incluidos en `docker-compose.yml`:
 - **fastapi-backend**: ejecuta `backend/main.py`, monta el directorio `frontend/` como recursos estáticos y expone la API REST.
 - **nginx-frontend**: entrega las páginas HTML precompiladas con la configuración de `frontend/nginx.conf`.
 - **local-postgres-db**: instancia PostgreSQL 15 con volumen persistente `booking-postgres-data`.
+
+
+
