@@ -55,39 +55,14 @@
 
     if (!bookingId || !propertyId) {
       alert('Datos de reserva no encontrados.');
-      window.location.href = "mis-reservas.html";
+      window.location.href = "index.html";
     }
 
-    const formContainer = document.getElementById('feedback-form');
-    const feedbackForm = document.getElementById('feedback-details');
-
-    async function ensureFeedbackAvailability() {
-      try {
-        const response = await apiFetch(`/feedback-status/${bookingId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.has_feedback) {
-            formContainer.innerHTML = `
-              <p class="feedback-message">Ya registraste un comentario para esta reserva.</p>
-              <a class="feedback-return" href="mis-reservas.html">Volver a Mis Reservas</a>
-            `;
-            return false;
-          }
-        }
-      } catch (error) {
-        console.error('Error al validar feedback:', error);
-        alert('No fue posible validar el estado del feedback. Intenta nuevamente.');
-        return false;
-      }
-
-      return true;
-    }
-
-    async function handleSubmit(e) {
+    document.getElementById('feedback-details').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const comments = document.getElementById('comments').value;
-      const rating = parseInt(document.getElementById('rating').value, 10);
+      const rating = parseInt(document.getElementById('rating').value);
 
       if (!comments || !rating) {
         alert('Completa todos los campos obligatorios.');
@@ -99,8 +74,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            booking_id: parseInt(bookingId, 10),
-            id_property: parseInt(propertyId, 10),
+            id_property: propertyId,
             comment: comments,
             rating: rating
           })
@@ -108,23 +82,15 @@
 
         if (response.ok) {
           alert('¡Feedback enviado con éxito!');
-          window.location.href = "mis-reservas.html";
+          window.location.href = "index.html";
         } else {
-          const errorData = await response.json().catch(() => ({ message: 'Error al enviar el feedback.' }));
-          alert(errorData.message || 'Error al enviar el feedback.');
+          alert('Error al enviar el feedback.');
         }
       } catch (error) {
         console.error('Error:', error);
         alert('Error de conexión con el servidor.');
       }
-    }
-
-    (async () => {
-      const canSubmit = await ensureFeedbackAvailability();
-      if (canSubmit) {
-        feedbackForm.addEventListener('submit', handleSubmit);
-      }
-    })();
+    });
   </script>
 </body>
 </html>

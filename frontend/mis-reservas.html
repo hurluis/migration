@@ -143,8 +143,6 @@
       card.classList.add('card');
 
       const canCancel = !isPast && canCancelReservation(reservation.in_time);
-      const hasFeedback = Boolean(Number(reservation.has_feedback ?? 0));
-      const showFeedbackButton = isPast && !hasFeedback;
 
       card.innerHTML = `
           <img src="${property.img}" alt="${reservation.property_name}">
@@ -164,25 +162,21 @@
                   Cancelar Reserva
               </button>`
               : ''}
-          ${showFeedbackButton ?
-              `<button class="feedback-btn"
+          ${isPast ?
+              `<button class="directions-btn"
                       data-booking-id="${reservation.id}"
                       data-property-id="${reservation.property_id}">
                   Dejar Feedback
-              </button>`
-              : ''}
-          ${!showFeedbackButton && hasFeedback ?
-              `<p class="feedback-badge">Feedback enviado</p>`
+              </button>` 
               : ''}
       `;
 
       document.getElementById('reservations-container').appendChild(card);
 
-      const feedbackButton = card.querySelector('.feedback-btn');
-      if (feedbackButton) {
-          feedbackButton.addEventListener('click', (e) => {
-              const bookingId = e.currentTarget.dataset.bookingId;
-              const propertyId = e.currentTarget.dataset.propertyId;
+      if (isPast) {
+          card.querySelector('.directions-btn').addEventListener('click', (e) => {
+              const bookingId = e.target.dataset.bookingId;
+              const propertyId = e.target.dataset.propertyId;
               window.location.href = `feedback.html?booking_id=${bookingId}&property_id=${propertyId}`;
           });
       }
