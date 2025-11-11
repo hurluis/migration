@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,22 +8,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="/estilos/styles.css">
+  <link rel="stylesheet" href="/estilos/google-auth.css">
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2111/2111320.png" type="image/jpeg">
 </head>
 
 <body class="bg-gray-100">
   <header class="header">
     <h1 class="logo">
-        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111320.png" alt="Logo">
-        AIRBNB JH-LS
+      <img src="https://cdn-icons-png.flaticon.com/512/2111/2111320.png" alt="Logo">
+      AIRBNB JH-LS
     </h1>
     <nav>
-        <ul class="nav-links">
-            <li><a href="#" id="register-link">Registrarse</a></li>
-            <li><a href="#" id="login-link">Iniciar Sesión</a></li>
-            <li><a href="mis-reservas.html" id="my-reservations-link" class="hidden">Mis Reservas</a></li>
-            <li><a href="#" id="logout-link" class="hidden">Cerrar Sesión</a></li>
-        </ul>
+      <ul class="nav-links">
+        <li><a href="#" id="register-link">Registrarse</a></li>
+        <li><a href="#" id="login-link">Iniciar Sesión</a></li>
+        <li><a href="mis-reservas.html" id="my-reservations-link" class="hidden">Mis Reservas</a></li>
+        <li><a href="#" id="logout-link" class="hidden">Cerrar Sesión</a></li>
+      </ul>
     </nav>
   </header>
 
@@ -37,6 +39,16 @@
           <input type="password" id="register-password" placeholder="Contraseña" required>
           <button type="submit">Registrarse</button>
         </form>
+
+        <!-- Separador y botón de Google para registro -->
+        <div class="separator">
+          <span>O regístrate con</span>
+        </div>
+        <a href="/auth/google/login" class="google-btn">
+          <img src="/estilos/images/google.png" alt="Google logo">
+          Registrarse con Google
+        </a>
+
         <p id="register-message"></p>
       </div>
     </div>
@@ -50,6 +62,16 @@
           <input type="password" id="login-password" placeholder="Contraseña" required>
           <button type="submit">Iniciar Sesión</button>
         </form>
+
+        <!-- Separador y botón de Google para login -->
+        <div class="separator">
+          <span>O inicia sesión con</span>
+        </div>
+        <a href="/auth/google/login" class="google-btn">
+          <img src="/estilos/images/google.png" alt="Google logo">
+          Iniciar sesión con Google
+        </a>
+
         <p id="login-message"></p>
       </div>
     </div>
@@ -60,31 +82,38 @@
       <div class="grid-container">
 
         <div class="card">
-          <img src="https://images.ctfassets.net/8lc7xdlkm4kt/33L5l2aTXdJAAEfw55n0Yh/7472faf6b498fdc11091fc65a5c69165/render-sobre-planos-saint-michel.jpg" alt="Apartamento en El Poblado">
+          <img
+            src="https://images.ctfassets.net/8lc7xdlkm4kt/33L5l2aTXdJAAEfw55n0Yh/7472faf6b498fdc11091fc65a5c69165/render-sobre-planos-saint-michel.jpg"
+            alt="Apartamento en El Poblado">
           <h3>Apartamento en El Poblado</h3>
           <p>$450,000 COP / noche</p>
           <br>
           <a href="detalle.html?id=1" class="reserve-btn">Ver más</a>
         </div>
-      
+
         <div class="card">
-          <img src="https://media-luna-hostel.cartagena-hotels.net/data/Photos/1080x700w/10392/1039228/1039228984/cartagena-media-luna-hostel-photo-1.JPEG" alt="Casa colonial en Cartagena">
+          <img
+            src="https://media-luna-hostel.cartagena-hotels.net/data/Photos/1080x700w/10392/1039228/1039228984/cartagena-media-luna-hostel-photo-1.JPEG"
+            alt="Casa colonial en Cartagena">
           <h3>Casa colonial en Cartagena</h3>
           <p>$500,000 COP / noche</p>
-          <br>          
+          <br>
           <a href="detalle.html?id=2" class="reserve-btn">Ver más</a>
         </div>
-      
+
         <div class="card">
-          <img src="https://latinexclusive.com/sites/default/files/styles/main_property_slide/public/api_file_downloads/3862061_1.jpg?itok=qxmdZ3oA" alt="Loft en Bogotá">
+          <img
+            src="https://latinexclusive.com/sites/default/files/styles/main_property_slide/public/api_file_downloads/3862061_1.jpg?itok=qxmdZ3oA"
+            alt="Loft en Bogotá">
           <h3>Loft en Bogotá</h3>
           <p>$320,000 COP / noche</p>
-          <br>          
+          <br>
           <a href="detalle.html?id=3" class="reserve-btn">Ver más</a>
         </div>
 
         <div class="card">
-          <img src="https://asoaturquindio.com/wp-content/uploads/2023/09/cabanas-la-herradura-4-1.jpg" alt="Cabaña en el Eje Cafetero">
+          <img src="https://asoaturquindio.com/wp-content/uploads/2023/09/cabanas-la-herradura-4-1.jpg"
+            alt="Cabaña en el Eje Cafetero">
           <h3>Cabaña en el Eje Cafetero</h3>
           <p>$800,000 COP / noche</p>
           <br>
@@ -92,16 +121,17 @@
         </div>
 
         <div class="card">
-          <img src="https://cf.bstatic.com/xdata/images/hotel/max500/151251581.jpg?k=02b942afead8be7bea67cd35453662d8a6ae787336565b884c55aca6dbedcd08&o=" alt="Hostal en Santa Marta">
+          <img
+            src="https://cf.bstatic.com/xdata/images/hotel/max500/151251581.jpg?k=02b942afead8be7bea67cd35453662d8a6ae787336565b884c55aca6dbedcd08&o="
+            alt="Hostal en Santa Marta">
           <h3>Hostal en Santa Marta</h3>
           <p>$50,000 COP / noche</p>
           <br>
           <a href="detalle.html?id=5" class="reserve-btn">Ver más</a>
         </div>
-    </div>
+      </div>
     </section>
   </main>
-
 
   <footer class="footer">
     <p>&copy; 2025 AIRBNB JH-LS. Todos los derechos reservados.</p>
@@ -128,16 +158,16 @@
         myReservationsLink.classList.add('hidden');
       }
     }
-    
+
 
     updateMenu();
 
     document.getElementById('logout-link').addEventListener('click', (e) => {
       e.preventDefault();
-      localStorage.removeItem('userId'); 
-      updateMenu(); 
+      localStorage.removeItem('userId');
+      updateMenu();
       alert('Sesión cerrada con éxito.');
-      window.location.href = "index.html"; 
+      window.location.href = "index.html";
     });
 
     document.getElementById('register-form').addEventListener('submit', async (e) => {
@@ -154,10 +184,10 @@
 
       const result = await response.json();
       if (response.ok) {
-        localStorage.setItem('userId', result.user_id); 
-        updateMenu(); 
+        localStorage.setItem('userId', result.user_id);
+        updateMenu();
         document.getElementById('register-message').textContent = "Usuario registrado con éxito";
-        window.location.href = "index.html"; 
+        window.location.href = "index.html";
       } else {
         document.getElementById('register-message').textContent = result.message;
       }
@@ -168,14 +198,14 @@
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
-//---------------------------------
+      //---------------------------------
       if (email === "admin@airbnb.com" && password === "123456") {
-          localStorage.setItem("userRole", "admin");
-          localStorage.setItem("userId", "admin");
-          window.location.href = "admin-panel.html";
-          return;      
-        }
-//---------------------------------
+        localStorage.setItem("userRole", "admin");
+        localStorage.setItem("userId", "admin");
+        window.location.href = "admin-panel.html";
+        return;
+      }
+      //---------------------------------
 
       const response = await apiFetch('/login', {
         method: 'POST',
@@ -185,10 +215,10 @@
 
       const result = await response.json();
       if (response.ok) {
-        localStorage.setItem('userId', result.user_id); 
-        updateMenu(); 
+        localStorage.setItem('userId', result.user_id);
+        updateMenu();
         document.getElementById('login-message').textContent = "Inicio de sesión exitoso";
-        window.location.href = "index.html"; 
+        window.location.href = "index.html";
       } else {
         document.getElementById('login-message').textContent = result.message;
       }
@@ -214,6 +244,16 @@
         loginModal.classList.add('hidden');
       });
     });
+
+    // Cerrar modales al hacer click fuera
+    window.addEventListener('click', (e) => {
+      if (e.target === registerModal) {
+        registerModal.classList.add('hidden');
+      }
+      if (e.target === loginModal) {
+        loginModal.classList.add('hidden');
+      }
+    });
   </script>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -236,6 +276,66 @@
       L.marker([loc.lat, loc.lng]).addTo(map)
         .bindPopup(`<b>${loc.name}</b><br>${loc.price}`);
     });
+    // Manejar redirección después del login con Google
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleLoginSuccess = urlParams.get('google_login_success');
+    const userId = urlParams.get('user_id');
+
+    if (googleLoginSuccess === 'true' && userId) {
+      localStorage.setItem('userId', userId);
+      updateMenu();
+
+      // Limpiar la URL
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+
+      alert('Inicio de sesión con Google exitoso');
+    }
+
+
+    // Manejar redirección después del login con Google
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const googleLoginSuccess = urlParams.get('google_login_success');
+      const userId = urlParams.get('user_id');
+      const googleLoginError = urlParams.get('google_login_error');
+
+      if (googleLoginSuccess === 'true' && userId) {
+        localStorage.setItem('userId', userId);
+        updateMenu();
+
+        // Limpiar la URL
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+
+        alert('✅ Inicio de sesión con Google exitoso');
+      }
+
+      if (googleLoginError) {
+        let errorMessage = 'Error en el login con Google';
+        switch (googleLoginError) {
+          case 'auth_failed':
+            errorMessage = 'Error de autenticación con Google';
+            break;
+          case 'user_info_failed':
+            errorMessage = 'No se pudo obtener la información del usuario';
+            break;
+          case 'no_email':
+            errorMessage = 'No se pudo obtener el email de Google';
+            break;
+          case 'database_error':
+            errorMessage = 'Error en la base de datos';
+            break;
+        }
+
+        // Limpiar la URL
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+
+        alert('❌ ' + errorMessage);
+      }
+    });
   </script>
 </body>
+
 </html>

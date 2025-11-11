@@ -9,8 +9,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto de archivos
-COPY main.py .
+# Copiar el backend main.py desde el directorio backend
+COPY backend/main.py ./main.py
+
+# Copiar archivos de frontend necesarios para servir recursos estáticos desde el backend
+COPY frontend/ /app/frontend/
 
 EXPOSE 8000
 
