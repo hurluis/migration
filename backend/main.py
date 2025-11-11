@@ -747,9 +747,11 @@ async def get_feedback(property_id: int):
     return JSONResponse(content={"feedback": feedback_list}, status_code=200)
 
 
+configure_metrics(app)
+
+
 @app.on_event("startup")
 async def on_startup() -> None:
-    configure_metrics(app)
     update_database_health_metric()
     app.state.db_monitor_task = asyncio.create_task(monitor_database_health())
 
