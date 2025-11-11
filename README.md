@@ -11,6 +11,15 @@ Aplicación tipo Airbnb compuesta por un backend *FastAPI* y un conjunto de pág
 | Base de datos | SQLite por defecto (backend/app.db) o PostgreSQL si se define DATABASE_URL. |
 | Observabilidad | Exposición de métricas Prometheus desde FastAPI y stack de monitoreo Prometheus + Grafana preconfigurado (monitoring/*). |
 
+### 📐 Documentación Completa de Arquitectura
+
+Para diagramas detallados, flujos de datos, y especificaciones técnicas completas, consulta:
+
+- **[📖 ARCHITECTURE.md](./ARCHITECTURE.md)** - Diagrama principal de arquitectura con todos los componentes y sus interacciones
+- **[🔄 docs/ARCHITECTURE_FLOWS.md](./docs/ARCHITECTURE_FLOWS.md)** - Diagramas de secuencia, flujos de negocio y modelos C4
+- **[🌍 docs/DEPLOYMENT_ENVIRONMENTS.md](./docs/DEPLOYMENT_ENVIRONMENTS.md)** - Configuración de entornos (Dev, Testing, Producción)
+- **[📚 docs/README.md](./docs/README.md)** - Índice completo de documentación técnica
+
 ## 📁 Estructura del repositorio
 
 
