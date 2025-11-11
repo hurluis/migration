@@ -2,6 +2,7 @@
   "id": null,
   "uid": "fastapi-overview",
   "title": "FastAPI - Observabilidad",
+  "style": "dark",
   "tags": ["fastapi", "prometheus"],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -25,16 +26,36 @@
       "fieldConfig": {
         "defaults": {
           "unit": "req/s",
-          "decimals": 2
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "rgba(255, 128, 0, 0.6)",
+                "value": null
+              },
+              {
+                "color": "rgba(0, 128, 0, 0.6)",
+                "value": 75
+              }
+            ]
+          }
         },
         "overrides": []
       },
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
         "reduceOptions": {
           "fields": "",
           "calcs": ["lastNotNull"]
         },
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "textMode": "auto"
       },
       "gridPos": {
         "h": 6,
@@ -60,16 +81,40 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "decimals": 3
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(0, 128, 0, 0.6)",
+                "value": null
+              },
+              {
+                "color": "rgba(255, 128, 0, 0.6)",
+                "value": 0.5
+              },
+              {
+                "color": "rgba(255, 0, 0, 0.7)",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       },
       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
         "reduceOptions": {
           "fields": "",
           "calcs": ["lastNotNull"]
         },
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "textMode": "auto"
       },
       "gridPos": {
         "h": 6,
@@ -94,18 +139,21 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
             {
               "options": {
                 "0": {
                   "index": 0,
                   "text": "Sin conexión",
-                  "color": "red"
+                  "color": "rgba(255, 0, 0, 0.7)"
                 },
                 "1": {
                   "index": 1,
                   "text": "Operativa",
-                  "color": "green"
+                  "color": "rgba(0, 128, 0, 0.6)"
                 }
               },
               "type": "value"
@@ -115,11 +163,11 @@
             "mode": "number",
             "steps": [
               {
-                "color": "red",
+                "color": "rgba(255, 0, 0, 0.7)",
                 "value": null
               },
               {
-                "color": "green",
+                "color": "rgba(0, 128, 0, 0.6)",
                 "value": 1
               }
             ]
@@ -128,11 +176,15 @@
         "overrides": []
       },
       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
         "reduceOptions": {
           "fields": "",
           "calcs": ["lastNotNull"]
         },
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "textMode": "value_and_name"
       },
       "gridPos": {
         "h": 6,
@@ -158,7 +210,17 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "gradientMode": "opacity",
+            "showPoints": "never"
+          }
         },
         "overrides": []
       },
@@ -186,7 +248,17 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "gradientMode": "opacity",
+            "showPoints": "never"
+          }
         },
         "overrides": []
       },
