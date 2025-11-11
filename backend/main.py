@@ -1,5 +1,7 @@
 # python -m uvicorn main:app --reload
 
+import asyncio
+import contextlib
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException, Request
@@ -17,6 +19,9 @@ from authlib.integrations.starlette_client import OAuth
 # Nuevas importaciones para PostgreSQL
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+
+from prometheus_client import Counter, Gauge, Histogram
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
 
 load_dotenv()
 
@@ -81,6 +86,7 @@ else:
 # Configuración de la conexión a la base de datos local
 DATABASE_URL = os.getenv("DATABASE_URL")
 IS_DOCKER = os.getenv("IS_DOCKER", "false").lower() == "true"
+DB_HEALTH_CHECK_INTERVAL = int(os.getenv("DB_HEALTH_CHECK_INTERVAL", "30"))
 
 if not IS_DOCKER:
     # When running locally, use SQLite
@@ -103,6 +109,101 @@ if IS_SQLITE:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
+
+instrumentator = (
+    Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+        should_instrument_requests_inprogress=True,
+        inprogress_labels=True,
+    )
+    .add(metrics.default())
+    .add(metrics.request_size())
+    .add(metrics.response_size())
+    .add(metrics.latency())
+)
+
+db_health_gauge = Gauge(
+    "booking_database_up",
+    "Indica si la base de datos responde correctamente a las verificaciones (1=OK, 0=error).",
+)
+
+reservations_counter = Counter(
+    "booking_reservations_total",
+    "Conteo total de intentos de reserva realizados a través de la API",
+    labelnames=("outcome",),
+)
+
+reservation_nights_histogram = Histogram(
+    "booking_reservation_nights",
+    "Distribución del número de noches reservadas por los usuarios",
+    buckets=(1, 2, 3, 5, 7, 10, 14, 21, 28, 60),
+)
+
+cancellations_counter = Counter(
+    "booking_cancellations_total",
+    "Número de cancelaciones procesadas por la API",
+    labelnames=("outcome",),
+)
+
+
+RESERVATION_OUTCOMES = (
+    "success",
+    "invalid_date_format",
+    "past_date",
+    "invalid_range",
+    "conflict",
+)
+
+CANCELLATION_OUTCOMES = (
+    "success",
+    "not_found",
+    "already_inactive",
+    "too_late",
+)
+
+
+def initialize_business_metrics() -> None:
+    """Inicializa las métricas de negocio con series en cero."""
+
+    for outcome in RESERVATION_OUTCOMES:
+        reservations_counter.labels(outcome=outcome).inc(0)
+
+    for outcome in CANCELLATION_OUTCOMES:
+        cancellations_counter.labels(outcome=outcome).inc(0)
+
+
+def update_database_health_metric() -> None:
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        db_health_gauge.set(1)
+    except SQLAlchemyError:
+        db_health_gauge.set(0)
+
+
+async def monitor_database_health():
+    """Actualiza periódicamente la métrica de salud de la base de datos."""
+
+    while True:
+        update_database_health_metric()
+        await asyncio.sleep(DB_HEALTH_CHECK_INTERVAL)
+
+
+def configure_metrics(app: FastAPI) -> None:
+    """Configura el instrumentador de Prometheus solo una vez."""
+
+    if getattr(app.state, "metrics_configured", False):
+        return
+
+    instrumentator.instrument(app).expose(
+        app,
+        include_in_schema=False,
+        endpoint="/metrics",
+        should_gzip=True,
+    )
+    app.state.metrics_configured = True
 
 
 def init_db():
@@ -527,10 +628,16 @@ async def reserve(reservation: ReservationRequest):
         in_time = datetime.strptime(reservation.in_time, "%Y-%m-%d")
         out_time = datetime.strptime(reservation.out_time, "%Y-%m-%d")
     except ValueError:
+        reservations_counter.labels(outcome="invalid_date_format").inc()
         return JSONResponse(content={"message": "Formato de fecha inválido. Use YYYY-MM-DD"}, status_code=400)
 
     if in_time.date() < datetime.now().date():
+        reservations_counter.labels(outcome="past_date").inc()
         return JSONResponse(content={"message": "No puedes reservar fechas pasadas"}, status_code=400)
+
+    if out_time <= in_time:
+        reservations_counter.labels(outcome="invalid_range").inc()
+        return JSONResponse(content={"message": "La fecha de salida debe ser posterior a la fecha de entrada"}, status_code=400)
 
     # Comprobar si hay reservas que se solapan
     # Una reserva se solapa si (start1 <= end2) and (end1 >= start2)
@@ -545,6 +652,7 @@ async def reserve(reservation: ReservationRequest):
         {"property_id": reservation.property_id, "in_time": in_time, "out_time": out_time},
     ).first()
     if existing_reservation:
+        reservations_counter.labels(outcome="conflict").inc()
         return JSONResponse(content={"message": "La propiedad ya está reservada en esas fechas"}, status_code=400)
 
     # Crear la nueva reserva
@@ -558,6 +666,10 @@ async def reserve(reservation: ReservationRequest):
         "in_time": in_time,
         "out_time": out_time
     })
+
+    reservations_counter.labels(outcome="success").inc()
+    nights = max((out_time.date() - in_time.date()).days, 1)
+    reservation_nights_histogram.observe(nights)
 
     return JSONResponse(content={"message": "Reserva realizada con éxito"}, status_code=201)
 
@@ -618,16 +730,19 @@ async def cancel_reservation(payload: CancelReservationRequest):
     ).first()
 
     if not booking:
+        cancellations_counter.labels(outcome="not_found").inc()
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
 
     booking_data = booking._mapping
     if booking_data["status"] != "activo":
+        cancellations_counter.labels(outcome="already_inactive").inc()
         return JSONResponse(content={"message": "La reserva ya no está activa"}, status_code=400)
 
     check_in_date = ensure_date(booking_data["in_time"])
     today = datetime.now().date()
 
     if check_in_date <= today:
+        cancellations_counter.labels(outcome="too_late").inc()
         return JSONResponse(content={"message": "Solo puedes cancelar antes del día de ingreso"}, status_code=400)
 
     execute_query(
@@ -635,6 +750,7 @@ async def cancel_reservation(payload: CancelReservationRequest):
         {"booking_id": payload.booking_id},
     )
 
+    cancellations_counter.labels(outcome="success").inc()
     return JSONResponse(content={"message": "Reserva cancelada con éxito"}, status_code=200)
 
 @api_router.post("/feedback")
@@ -655,6 +771,23 @@ async def get_feedback(property_id: int):
         for row in execute_query(query, {"property_id": property_id}).fetchall()
     ]
     return JSONResponse(content={"feedback": feedback_list}, status_code=200)
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    configure_metrics(app)
+    initialize_business_metrics()
+    update_database_health_metric()
+    app.state.db_monitor_task = asyncio.create_task(monitor_database_health())
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    monitor_task = getattr(app.state, "db_monitor_task", None)
+    if monitor_task:
+        monitor_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await monitor_task
 
 
 app.include_router(api_router, prefix="/api")

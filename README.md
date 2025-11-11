@@ -9,6 +9,7 @@ Aplicación tipo Airbnb compuesta por un backend *FastAPI* y un conjunto de pág
 | Backend | Servicio FastAPI (backend/main.py) con ORM ligero basado en SQLAlchemy, inicialización de tablas y sembrado automático de propiedades para sincronizarse con el frontend. |
 | Frontend | Vistas estáticas (frontend/*.html) que consumen la API mediante fetch, se estilizan con TailwindCSS y se sirven con FastAPI o un contenedor Nginx. |
 | Base de datos | SQLite por defecto (backend/app.db) o PostgreSQL si se define DATABASE_URL. |
+| Observabilidad | Exposición de métricas Prometheus desde FastAPI y stack de monitoreo Prometheus + Grafana preconfigurado (monitoring/*). |
 
 ## 📁 Estructura del repositorio
 
@@ -28,6 +29,13 @@ Aplicación tipo Airbnb compuesta por un backend *FastAPI* y un conjunto de pág
 │   │   └── styles.css             # Estilos
 │   ├── nginx.conf                 # Nginx CORREGIDO (sirve /estilos local, proxy /api y /auth sin duplicar)
 │   └── Dockerfile                 # Imagen Nginx (copia html + nginx.conf)
+│
+├── monitoring/
+│   ├── prometheus/
+│   │   └── prometheus.yml         # Configuración de scrapeo para backend/prometheus
+│   └── grafana/
+│       ├── provisioning/          # Datasource + dashboards pre-provisionados
+│       └── dashboards/            # Dashboard "FastAPI - Observabilidad"
 │
 ├── .github/
 │   └── workflows/
@@ -71,6 +79,35 @@ Las rutas están disponibles tanto en / como con el prefijo /api.
 | POST | /cancel-reservation | Cancela una reserva activa antes del check-in. |
 | POST | /feedback | Almacena un comentario y calificación para una propiedad. |
 | GET | /feedback/{property_id} | Recupera todos los comentarios asociados a la propiedad. |
+
+## 📊 Observabilidad y monitoreo
+
+- El backend expone métricas compatibles con Prometheus en `http://<host>:8000/metrics`.
+- Se instrumentan automáticamente los tiempos de respuesta, tamaños de payload y número de peticiones mediante [`prometheus-fastapi-instrumentator`](https://github.com/trallnag/prometheus-fastapi-instrumentator).
+- Se publican métricas de negocio adicionales:
+  - `booking_reservations_total{outcome="..."}`: intentos de reserva clasificados por resultado (`success`, `conflict`, `invalid_range`, `past_date`, `invalid_date_format`).
+  - `booking_reservation_nights`: histograma de noches reservadas.
+  - `booking_cancellations_total{outcome="..."}`: cancelaciones procesadas (`success`, `too_late`, `already_inactive`, `not_found`).
+  - `booking_database_up`: gauge (0/1) que refleja el estado de la conexión a la base de datos, actualizado en segundo plano cada `DB_HEALTH_CHECK_INTERVAL` segundos (30 por defecto).
+
+### Stack de monitoreo con Docker Compose
+
+El archivo [`docker-compose.yml`](docker-compose.yml) incluye servicios listos para Prometheus y Grafana además del backend, frontend y PostgreSQL.
+
+```bash
+docker compose up --build backend frontend db prometheus grafana
+```
+
+- Prometheus: http://localhost:9090 (configuración en `monitoring/prometheus/prometheus.yml`).
+- Grafana: http://localhost:3000 (usuario/contraseña por defecto `admin`/`admin`, sobreescribibles con `GRAFANA_ADMIN_USER` y `GRAFANA_ADMIN_PASSWORD`).
+- Dashboard inicial: *FastAPI - Observabilidad* cargado automáticamente (provisioning en `monitoring/grafana/*`).
+- Grafana arranca en modo oscuro (`GF_USERS_DEFAULT_THEME=dark`). Si ya tenías un volumen persistente creado, elimínalo (`docker volume rm booking-grafana-data`) para aplicar los cambios de apariencia y dashboards provisionados de nuevo.
+
+> Consejo: si solo quieres lanzar el stack de observabilidad mientras desarrollas localmente puedes levantar `backend`, `db`, `prometheus` y `grafana`. El frontend no es necesario para visualizar métricas.
+
+### Kubernetes / Prometheus Operator
+
+Los manifiestos `deployment.yaml` y `service.yaml` incluyen las anotaciones `prometheus.io/*` para que un Prometheus externo (por ejemplo, el Prometheus Operator) pueda descubrir automáticamente el endpoint `/metrics` del backend.
 
 ## 🖥 Ejecución local
 
@@ -197,6 +234,8 @@ Estas imágenes se regeneran y publican automáticamente cada vez que se actuali
 6. Accede a:
    - http://localhost:8000 para el frontend servido por Nginx.
    - http://localhost:8000/docs para la documentación interactiva (swagger ui).
+   - http://localhost:9090 para explorar métricas directamente en Prometheus.
+   - http://localhost:3000 para Grafana (dashboard *FastAPI - Observabilidad*).
 
 Servicios incluidos en docker-compose.yml:
 - *fastapi-backend*: ejecuta backend/main.py, monta el directorio frontend/ como recursos estáticos y expone la API REST.
